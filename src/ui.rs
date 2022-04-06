@@ -1,3 +1,4 @@
+use linkify::LinkFinder;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -7,7 +8,11 @@ use tui::{
     Frame,
 };
 
-use crate::{app::App, filter::Filter, keymap::KeyMode};
+use crate::{
+    app::{App, AppState},
+    filter::Filter,
+    keymap::KeyMode,
+};
 
 /// Draw UI
 pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -135,15 +140,54 @@ pub fn draw_commands<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
 pub fn draw_content<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
     let block = Block::default().borders(Borders::ALL);
     let mut text = Text::default();
-    let (content, offset) = &app.state.content;
+    let mut link_count = 0;
+    let finder = LinkFinder::new();
+    let AppState {
+        content: (content, offset),
+        ..
+    } = &app.state;
 
     for line in content.lines() {
-        text.extend(Text::raw(line));
+        // buffer string for current line
+        let mut line_string = Vec::new();
+        // collect all links in the line
+        let links: Vec<_> = finder.links(line).collect();
+
+        // label all links iff follow link mode and there is a link in the current line.
+        let mut last_link_end = 0;
+
+        for link in links {
+            // split current line into three parts:
+            // before the link, the link itself and after the link
+            let (_, rest) = line.split_at(last_link_end);
+            let (first, _) = rest.split_at(link.start() - last_link_end);
+
+            // add text before link
+            line_string.push(Span::from(first));
+
+            // add link text with Cyan color
+            line_string.push(Span::styled(
+                format!("{} [{}]", link.as_str(), link_count + 1),
+                Style::default().fg(Color::Cyan),
+            ));
+
+            // update the index of the end of link
+            last_link_end = link.end();
+            link_count += 1;
+        }
+
+        // add the rest of the line
+        let (_, rest) = line.split_at(last_link_end);
+        line_string.push(Span::raw(rest));
+        text.extend(Text::from(Spans::from(line_string)));
     }
+
+    text.extend(Text::raw(format!("Total Links: {}", link_count)));
 
     let content = Paragraph::new(text)
         .block(block)
         .wrap(Wrap { trim: true })
         .scroll((*offset, 0));
+
     f.render_widget(content, area);
 }

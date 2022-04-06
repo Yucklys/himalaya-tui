@@ -119,6 +119,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "crossterm",
+ "linkify",
  "serde",
  "serde_json",
  "tui",
@@ -160,6 +161,15 @@ name = "libc"
 version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e74d72e0f9b65b5b4ca49a346af3976df0f9c61d550727f349ecd559f251a26c"
+
+[[package]]
+name = "linkify"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccbcd666d915aa3ae3c3774999a9e20b2776a018309b8159d07df062b91f45e8"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "lock_api"

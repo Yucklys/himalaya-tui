@@ -43,6 +43,7 @@ impl Keymap {
                         Keybind(KeyCode::Char('q'), KeyModifiers::NONE, Event::Quit),
                         Keybind(KeyCode::Char('j'), KeyModifiers::NONE, Event::ScrollDown),
                         Keybind(KeyCode::Char('k'), KeyModifiers::NONE, Event::ScrollUp),
+                        Keybind(KeyCode::Char('f'), KeyModifiers::NONE, Event::FollowLink),
                     ],
                 ),
             ]),
@@ -121,4 +122,5 @@ pub enum Event {
     SwitchMode(KeyMode),
     ScrollUp,
     ScrollDown,
+    FollowLink,
 }
