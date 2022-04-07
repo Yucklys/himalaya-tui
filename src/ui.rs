@@ -140,12 +140,15 @@ pub fn draw_commands<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
 pub fn draw_content<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
     let block = Block::default().borders(Borders::ALL);
     let mut text = Text::default();
-    let mut link_count = 0;
     let finder = LinkFinder::new();
     let AppState {
         content: (content, offset),
+        review_flags: flags,
         ..
-    } = &app.state;
+    } = &mut app.state;
+
+    // clear links stored before
+    flags.links.clear();
 
     for line in content.lines() {
         // buffer string for current line
@@ -157,6 +160,9 @@ pub fn draw_content<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
         let mut last_link_end = 0;
 
         for link in links {
+            // save link to AppState
+            flags.links.push(link.as_str().to_string());
+
             // split current line into three parts:
             // before the link, the link itself and after the link
             let (_, rest) = line.split_at(last_link_end);
@@ -165,15 +171,19 @@ pub fn draw_content<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
             // add text before link
             line_string.push(Span::from(first));
 
-            // add link text with Cyan color
-            line_string.push(Span::styled(
-                format!("{} [{}]", link.as_str(), link_count + 1),
-                Style::default().fg(Color::Cyan),
-            ));
+            // check if links flag is on
+            if flags.show_links {
+                // add link text with Cyan color
+                line_string.push(Span::styled(
+                    format!("{} [{}]", link.as_str(), flags.links.len()),
+                    Style::default().fg(Color::Cyan),
+                ));
+            } else {
+                line_string.push(Span::raw(link.as_str()));
+            }
 
             // update the index of the end of link
             last_link_end = link.end();
-            link_count += 1;
         }
 
         // add the rest of the line
@@ -182,7 +192,9 @@ pub fn draw_content<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
         text.extend(Text::from(Spans::from(line_string)));
     }
 
-    text.extend(Text::raw(format!("Total Links: {}", link_count)));
+    if flags.show_stats {
+        text.extend(Text::raw(format!("Total Links: {}", flags.links.len())));
+    }
 
     let content = Paragraph::new(text)
         .block(block)

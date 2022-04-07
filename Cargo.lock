@@ -120,6 +120,7 @@ dependencies = [
  "clap",
  "crossterm",
  "linkify",
+ "open",
  "serde",
  "serde_json",
  "tui",
@@ -227,6 +228,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "open"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9213e7b66aa06a7722828ee2980c1adff22a3922b582baaa1e62e30ca2a6c018"
+dependencies = [
+ "pathdiff",
+ "winapi",
+]
+
+[[package]]
 name = "os_str_bytes"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,6 +270,12 @@ dependencies = [
  "smallvec",
  "winapi",
 ]
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "proc-macro-error"

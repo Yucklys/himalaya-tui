@@ -15,22 +15,24 @@ pub fn himalaya_command(command: Vec<String>) -> String {
     let mut line = String::from("himalaya --output json");
     let mut options = "";
 
-    match iter.next().unwrap().to_uppercase().as_str() {
-        "SEARCH" => {
-            if let Some(first) = command.get(1) {
-                let keywords = [
-                    "all", "answered", "before", "body", "deleted", "from", "header", "new", "not",
-                    "or", "recent", "seen", "subject", "text", "to",
-                ];
-                if !keywords.contains(&first.to_lowercase().as_str()) {
-                    line = format!("{} search subject", line);
+    if let Some(first_arg) = iter.next() {
+        match first_arg.to_uppercase().as_str() {
+            "SEARCH" => {
+                if let Some(first) = command.get(1) {
+                    let keywords = [
+                        "all", "answered", "before", "body", "deleted", "from", "header", "new",
+                        "not", "or", "recent", "seen", "subject", "text", "to",
+                    ];
+                    if !keywords.contains(&first.to_lowercase().as_str()) {
+                        line = format!("{} search subject", line);
+                    }
+                    // get all emails satified the filter
+                    options = "-s 0"
                 }
-                // get all emails satified the filter
-                options = "-s 0"
             }
+            "READ" => line = format!("{} read", line),
+            _ => {}
         }
-        "READ" => line = format!("{} read", line),
-        _ => {}
     }
 
     for arg in iter {

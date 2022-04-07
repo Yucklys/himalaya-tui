@@ -7,7 +7,7 @@ use crate::{
     utils::{get_email_list, himalaya_command},
 };
 
-use self::data::{Msg, Response};
+use self::data::{Msg, Response, ReviewFlags};
 
 #[derive(Debug)]
 pub struct App {
@@ -32,6 +32,7 @@ impl App {
             state: AppState {
                 msg_table: TableState::default(),
                 content: (String::new(), 0),
+                review_flags: ReviewFlags::default(),
             },
             command_input: String::new(),
             filters: Vec::new(),
@@ -48,7 +49,7 @@ impl App {
                 Event::ExitApp => self.should_quit = true,
                 Event::SelectNextMsg => self.state.next(self.emails.len()),
                 Event::SelectPrevMsg => self.state.previous(self.emails.len()),
-                Event::SwitchMode(mode) => self.keymap.switch_mode(mode),
+                Event::SwitchMode(mode) => self.keymap.switch_to(mode),
                 Event::CancelFilter => {
                     self.filters.pop();
                     self.need_update = true; // Update needed
@@ -67,11 +68,11 @@ impl App {
             KeyMode::Insert => match event {
                 Event::Quit => {
                     self.command_input.clear();
-                    self.keymap.switch_mode(KeyMode::Motion);
+                    self.keymap.switch_back();
                 }
                 Event::Submit => {
                     self.filters.push(Filter(self.command_input.clone()));
-                    self.keymap.switch_mode(KeyMode::Motion);
+                    self.keymap.switch_back();
                     self.need_update = true;
                 }
                 Event::RawInput(c) => self.command_input.push(c),
@@ -83,7 +84,7 @@ impl App {
             // Process keybind on read mode.
             KeyMode::Review => match event {
                 Event::Quit => {
-                    self.keymap.switch_mode(KeyMode::Motion);
+                    self.keymap.switch_to(KeyMode::Motion);
                     self.state.content = (String::new(), 0);
                     self.filters.pop();
                     self.need_update = true;
@@ -95,16 +96,27 @@ impl App {
                     }
                 }
                 Event::ScrollDown => self.state.content.1 += 1,
+                Event::ShowLinks => {
+                    self.state.review_flags.show_links ^= true;
+                    self.command_input.clear();
+                    self.command_input = "follow ".to_string();
+                    self.keymap.switch_to(KeyMode::Insert);
+                }
+                Event::ShowStats => self.state.review_flags.show_stats ^= true,
                 _ => {}
             },
         }
     }
 
     pub fn on_tick(&mut self) {
-        if self.need_update {
-            let command: Vec<String>;
-            if let Some(Filter(filter)) = self.curr_filter() {
-                command = filter.split(' ').map(|s| s.to_string()).collect();
+        let mut command: Vec<String> = Vec::new();
+        if let Some(Filter(filter)) = self.curr_filter() {
+            command = filter.split(' ').map(|s| s.to_string()).collect();
+        }
+
+        if !command.is_empty() {
+            if self.need_update {
+                // commands that request update from himalaya
                 let output = himalaya_command(command.clone());
 
                 match command[0].to_uppercase().as_str() {
@@ -121,18 +133,38 @@ impl App {
                         if let Ok(response) = serde_json::from_str::<Value>(&output) {
                             let content = response.get("response").unwrap().as_str().unwrap();
                             self.state.content = (content.to_string(), 0);
-                            self.keymap.switch_mode(KeyMode::Review);
+                            self.keymap.switch_to(KeyMode::Review);
                         }
                     }
                     _ => {}
                 }
-            } else {
-                self.emails = serde_json::from_str::<Response>(&get_email_list())
-                    .unwrap()
-                    .response;
-                self.state.msg_table = TableState::default();
-            }
 
+                self.need_update = false;
+            } else {
+                // process command that does not need to update from himalaya
+                match command[0].to_uppercase().as_str() {
+                    "FOLLOW" => {
+                        // open URL if the argument is correct
+                        if let Ok(index) = command[1].parse::<u16>() {
+                            if index as usize <= self.state.review_flags.links.len() {
+                                open::that(&self.state.review_flags.links[(index - 1) as usize])
+                                    .unwrap();
+                            }
+                        }
+                        // clear command input
+                        self.state.review_flags.show_links = false;
+                        self.keymap.switch_to(KeyMode::Review);
+                        self.filters.pop();
+                        self.command_input.clear();
+                    }
+                    _ => {}
+                }
+            }
+        } else if self.need_update {
+            self.emails = serde_json::from_str::<Response>(&get_email_list())
+                .unwrap()
+                .response;
+            self.state.msg_table = TableState::default();
             self.need_update = false;
         }
     }
@@ -146,6 +178,7 @@ impl App {
 pub struct AppState {
     pub msg_table: TableState,
     pub content: (String, u16),
+    pub review_flags: ReviewFlags,
 }
 
 impl AppState {
@@ -248,5 +281,12 @@ pub mod data {
             };
             write!(f, "{}", flag)
         }
+    }
+
+    #[derive(Debug, Default)]
+    pub struct ReviewFlags {
+        pub show_stats: bool,
+        pub show_links: bool,
+        pub links: Vec<String>,
     }
 }

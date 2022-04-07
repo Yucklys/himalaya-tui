@@ -6,6 +6,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 #[derive(Debug)]
 pub struct Keymap {
     pub mode: KeyMode,
+    pub prev_mode: KeyMode,
     keybinds: HashMap<KeyMode, Vec<Keybind>>,
 }
 
@@ -13,6 +14,7 @@ impl Keymap {
     pub fn default_keymap() -> Self {
         Keymap {
             mode: KeyMode::Motion,
+            prev_mode: KeyMode::Motion,
             keybinds: HashMap::from([
                 (
                     KeyMode::Motion,
@@ -43,7 +45,8 @@ impl Keymap {
                         Keybind(KeyCode::Char('q'), KeyModifiers::NONE, Event::Quit),
                         Keybind(KeyCode::Char('j'), KeyModifiers::NONE, Event::ScrollDown),
                         Keybind(KeyCode::Char('k'), KeyModifiers::NONE, Event::ScrollUp),
-                        Keybind(KeyCode::Char('f'), KeyModifiers::NONE, Event::FollowLink),
+                        Keybind(KeyCode::Char('f'), KeyModifiers::NONE, Event::ShowLinks),
+                        Keybind(KeyCode::Char('s'), KeyModifiers::NONE, Event::ShowStats),
                     ],
                 ),
             ]),
@@ -69,8 +72,15 @@ impl Keymap {
         events
     }
 
-    pub fn switch_mode(&mut self, mode: KeyMode) {
+    pub fn switch_to(&mut self, mode: KeyMode) {
+        self.prev_mode = self.mode.clone();
         self.mode = mode;
+    }
+
+    pub fn switch_back(&mut self) {
+        let temp = self.prev_mode.clone();
+        self.prev_mode = self.mode.clone();
+        self.mode = temp;
     }
 }
 
@@ -122,5 +132,7 @@ pub enum Event {
     SwitchMode(KeyMode),
     ScrollUp,
     ScrollDown,
+    ShowLinks,
+    ShowStats,
     FollowLink,
 }
