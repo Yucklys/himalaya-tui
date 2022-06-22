@@ -35,6 +35,7 @@ impl Keymap {
                     KeyMode::Insert,
                     vec![
                         Keybind(KeyCode::Char('d'), KeyModifiers::CONTROL, Event::Quit),
+                        Keybind(KeyCode::Esc, KeyModifiers::NONE, Event::Quit),
                         Keybind(KeyCode::Enter, KeyModifiers::NONE, Event::Submit),
                         Keybind(KeyCode::Backspace, KeyModifiers::NONE, Event::Backspace),
                     ],
@@ -134,5 +135,4 @@ pub enum Event {
     ScrollDown,
     ShowLinks,
     ShowStats,
-    FollowLink,
 }

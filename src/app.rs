@@ -4,7 +4,7 @@ use tui::widgets::TableState;
 use crate::{
     filter::Filter,
     keymap::{Event, KeyMode, Keymap},
-    utils::{get_email_list, himalaya_command},
+    utils::{filter, get_email_list, himalaya_command},
 };
 
 use self::data::{Msg, Response, ReviewFlags};
@@ -97,7 +97,7 @@ impl App {
                 }
                 Event::ScrollDown => self.state.content.1 += 1,
                 Event::ShowLinks => {
-                    self.state.review_flags.show_links ^= true;
+                    self.state.review_flags.show_links = true;
                     self.command_input.clear();
                     self.command_input = "follow ".to_string();
                     self.keymap.switch_to(KeyMode::Insert);
@@ -116,20 +116,16 @@ impl App {
 
         if !command.is_empty() {
             if self.need_update {
-                // commands that request update from himalaya
-                let output = himalaya_command(command.clone());
-
                 match command[0].to_uppercase().as_str() {
                     "SEARCH" => {
-                        if let Ok(filtered_msgs) = serde_json::from_str::<Response>(&output) {
-                            self.emails = filtered_msgs.response;
-                            self.state.msg_table = TableState::default();
-                        } else {
-                            self.emails = Vec::new();
-                            self.state.msg_table = TableState::default();
-                        }
+                        let output = filter(&self.emails);
+                        self.emails = output;
+                        self.state.msg_table = TableState::default();
                     }
                     "READ" => {
+                        // commands that request update from himalaya
+                        let output = himalaya_command(command.clone());
+
                         if let Ok(response) = serde_json::from_str::<Value>(&output) {
                             let content = response.get("response").unwrap().as_str().unwrap();
                             self.state.content = (content.to_string(), 0);

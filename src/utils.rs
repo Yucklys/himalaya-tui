@@ -1,4 +1,7 @@
-use std::process::Command;
+use std::io::prelude::*;
+use std::process::{Command, Stdio};
+
+use crate::app::data::Msg;
 
 pub fn get_email_list() -> String {
     let output = Command::new("sh")
@@ -7,6 +10,15 @@ pub fn get_email_list() -> String {
         .output()
         .expect("failed to execute himalaya");
     String::from_utf8(output.stdout).unwrap()
+}
+
+pub fn filter<T: Clone>(data: &Vec<T>) -> Vec<T> {
+    let data_strings = data
+        .iter()
+        .map(|x| x.to_string())
+        .fold(String::new(), |a, b| a + b + "\n");
+
+    return data.to_vec();
 }
 
 /// Process himalaya command and return in JSON format string.
